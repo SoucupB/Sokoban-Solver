@@ -1,0 +1,25 @@
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.cls-img {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+}
+
+.text-area-fun {
+  height: 200px;
+  width: 200px;
+}
+
+.text-area-inp {
+  width: 500px;
+}
+
+.padder {
+  margin: 10px;
+}
