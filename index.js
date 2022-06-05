@@ -255,6 +255,13 @@ function interpolation_FrameAt(frame, currentFrame, nextFrame) {
 
 }
 
+function setStringTo(str) {
+  let domElem = document.getElementById('str-inp');
+  if(domElem) {
+    domElem.value = str;
+  }
+}
+
 function onPress() {
   _clearIntervals();
   createGameMap(map_FromStr(getBoardContent()));
@@ -271,6 +278,87 @@ function _getInputString() {
 function startGame() {
   createGameMap(map_FromStr(getBoardContent()));
   game_DrawStatesByString(map_FromStr(getBoardContent()), _getInputString());
+}
+
+function setCell(gameMap, y, x, val) {
+  let flag = Module.ccall(
+    'setMatrAt',  // name of C function
+    'I8',  // return type
+    ['I64', 'I8', 'I8', 'I8'],  // argument types
+    [gameMap, y, x, val]  // arguments
+  );
+  return flag;
+}
+
+function registerGameMap(gameMap) {
+  let gameMapPointer = Module.ccall(
+    'allocMatr',  // name of C function
+    'I64',  // return type
+    ['I8', 'I8'],  // argument types
+    [height, width]  // arguments
+  );
+  for(let i = 0; i < height; i++) {
+    for(let j = 0; j < width; j++) {
+      if(!setCell(gameMapPointer, i, j, gameMap[i][j].charCodeAt(0))) {
+        console.log(i, j, 'wroong')
+        return null;
+      }
+    }
+  }
+  return gameMapPointer;
+}
+
+function show(gameMap) {
+  Module.ccall(
+    'showMapAt',  // name of C function
+    'I64',  // return type
+    ['I64'],  // argument types
+    [gameMap]  // arguments
+  );
+}
+
+function getSokoResponse(gameMap, it_y, it_x) {
+  let gameMapPointer = Module.ccall(
+    'getSokoResponse',  // name of C function
+    'I64',  // return type
+    ['I64', 'I8', 'I8'],  // argument types
+    [gameMap, it_y, it_x]  // arguments
+  );
+  return gameMapPointer;
+}
+
+function getCharAtPos(buffer, position) {
+  return Module.ccall(
+    'getCharAtPos',  // name of C function
+    'I64',  // return type
+    ['I64', 'I32'],  // argument types
+    [buffer, position]  // arguments
+  );
+}
+
+function bufferToString(buffer) {
+  let response = "";
+  let index = 0;
+  let currentChar = getCharAtPos(buffer, index);
+  while(currentChar && index < 10001) {
+    response += String.fromCharCode(currentChar)
+    index++;
+    currentChar = getCharAtPos(buffer, index);
+  }
+  return response;
+}
+
+function think() {
+  let gameMap = map_FromStr(getBoardContent());
+  let mapPointer = registerGameMap(gameMap);
+  let it_x = 0;
+  for(let i = 0; i < gameMap.length; i++) {
+    console.log(gameMap[i])
+    it_x = Math.max(it_x, gameMap[i].length);
+  }
+  //show(mapPointer);
+  let responseBuffer = getSokoResponse(mapPointer, gameMap.length, it_x);
+  setStringTo(bufferToString(responseBuffer));
 }
 
 // drddddrruRluRluRluRluRddddldlluRluRluRluRluRdddllDuruulDrdddrrR

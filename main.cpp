@@ -25,7 +25,7 @@ enum {
     RIGHT
 };
 
-#define INITIAL_CAPACITY (1<<25)
+#define INITIAL_CAPACITY (1<<21)
 
 clock_t Start;
 
@@ -110,6 +110,12 @@ void pq_DeleteHead(PQueue queue) {
 
 void pq_Delete(PQueue queue) {
     queue->size = 0;
+}
+
+void pq_DeleteFromMemory(PQueue queue) {
+    free(queue->heap);
+    free(queue->indexes);
+    free(queue);
 }
 
 void *pq_GetMinValueIndex(PQueue queue) {
@@ -531,7 +537,7 @@ void mm_SearchDataAstar(Map self, int32_t (*heuristicFunction)(Map, int8_t, int8
     while(tail < maxNumberOfSteps) {
         struct Stack_t *state = (struct Stack_t *)pq_GetMinValueIndex(queue);
         if(!state || isStuck(self)) {
-            printf("Solutions not reached!\n");
+            //printf("Solutions not reached!\n");
             pq_Delete(queue);
             return ;
         }
@@ -577,7 +583,7 @@ void mm_SearchDataAstar(Map self, int32_t (*heuristicFunction)(Map, int8_t, int8
                     self->response[self->responseIndex++] = 'r';
                 }
             }
-            pq_Delete(queue);
+            pq_DeleteFromMemory(queue);
            // exit(0);
             *isDone = 1;
             return ;
@@ -926,7 +932,10 @@ Map mm_Add(unsigned char **map, uint8_t sizeY, uint8_t sizeX) {
     self->sizeY = sizeY;
     self->sizeX = sizeX;
     self->map = map;
-    self->response = (uint8_t *)malloc(sizeof(uint8_t) * 10000);
+
+    self->response = (uint8_t *)malloc(sizeof(uint8_t) * 10001);
+    memset(self->response, 0, sizeof(uint8_t) * 10001);
+
     self->prealocatedMemoryStack = (struct Stack_t*)malloc(sizeof(struct Stack_t) * INITIAL_CAPACITY);
     memset(self->prealocatedMemoryStack, 0, sizeof(struct Stack_t) * INITIAL_CAPACITY);
     self->hashMap = new std::unordered_map<uint64_t, bool>();
@@ -990,34 +999,92 @@ void playGame(uint8_t **bufferMap, uint8_t *response, uint8_t it_y, uint8_t it_x
     memcpy(response, map->response, sizeof(uint8_t) * map->responseIndex);
 }
 
-EMSCRIPTEN_KEEPALIVE void *allocBuffer(size_t size) {
-  return malloc(size);
-}
-
 int main() {
-    int bufferLength = 25;
-    char buffer[bufferLength];
-    unsigned char **bufferMap = (unsigned char **)malloc(sizeof(char*) * 25);
-    uint8_t it_y = 0;
-    uint8_t it_x = 0;
-    FILE *fd = fopen("input.txt", "r+");
-    for(int32_t i = 0; i < 10; i++) {
-        bufferMap[i] = (unsigned char *)malloc(sizeof(char) * 25);
-        memset(bufferMap[i], 0, sizeof(char) * 25);
-    }
-    while(fgets(buffer, 60, fd)) {
-        uint8_t bufferSize = strlen(buffer);
-        it_x = it_x < bufferSize ? bufferSize : it_x;
-        for(uint8_t i = 0; i < it_x; i++) {
-            bufferMap[it_y][i] = buffer[i];
-        }
-        it_y++;
-    }
-    fclose(fd);
-    uint8_t response[10004] = {0};
-    playGame(bufferMap, response, it_y, it_x);
-    printf("%s", response);
+    // int bufferLength = 25;
+    // char buffer[bufferLength];
+    // unsigned char **bufferMap = (unsigned char **)malloc(sizeof(char*) * 25);
+    // uint8_t it_y = 0;
+    // uint8_t it_x = 0;
+    // FILE *fd = fopen("input.txt", "r+");
+    // for(int32_t i = 0; i < 10; i++) {
+    //     bufferMap[i] = (unsigned char *)malloc(sizeof(char) * 25);
+    //     memset(bufferMap[i], 0, sizeof(char) * 25);
+    // }
+    // while(fgets(buffer, 60, fd)) {
+    //     uint8_t bufferSize = strlen(buffer);
+    //     it_x = it_x < bufferSize ? bufferSize : it_x;
+    //     for(uint8_t i = 0; i < it_x; i++) {
+    //         bufferMap[it_y][i] = buffer[i];
+    //     }
+    //     it_y++;
+    // }
+    // fclose(fd);
+    // uint8_t response[10004] = {0};
+    // playGame(bufferMap, response, it_y, it_x);
+    // printf("%s", response);
+
     // Map map = mm_Add(bufferMap, it_y, it_x);
     // Start = clock();
     // createBackTracking(map);
 }
+
+void map_Delete(Map self) {
+    free(self->forbiddenPlaces);
+    free(self->prealocatedMemoryStack);
+
+}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+EMSCRIPTEN_KEEPALIVE void *allocBuffer(size_t size) {
+  return malloc(size);
+}
+
+EMSCRIPTEN_KEEPALIVE uint8_t **allocMatr(uint8_t y, uint8_t x) {
+   uint8_t **matr = (uint8_t **)malloc(sizeof(uint8_t **) * y);
+   for(uint8_t i = 0; i < y; i++) {
+       matr[i] = (uint8_t *)malloc(sizeof(uint8_t) * x);
+       memset(matr[i], 0, sizeof(uint8_t) * x);
+   }
+   return matr;
+}
+
+EMSCRIPTEN_KEEPALIVE uint8_t setMatrAt(uint8_t **buffer, uint8_t i, uint8_t j, uint8_t value) {
+   buffer[i][j] = value;
+   return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE uint8_t showMapAt(uint8_t **buffer) {
+   for(uint8_t i = 0; i < 8; i++) {
+       for(int8_t j = 0; j < 8; j++) {
+           printf("%c", buffer[i][j]);
+       }
+       printf("\n");
+   }
+   return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE uint8_t *getSokoResponse(uint8_t **buffer, uint8_t it_y, uint8_t it_x) {
+  Map map = mm_Add(buffer, it_y, it_x);
+  Start = clock();
+  createBackTracking(map);
+  uint8_t *response = (uint8_t *)malloc(sizeof(uint8_t) * map->responseIndex);
+  memcpy(response, map->response, sizeof(uint8_t) * map->responseIndex);
+//   mm_Show(map);
+  for(int32_t i = 0; i < map->responseIndex; i++) {
+      printf("%c", map->response[i]);
+  }
+  printf("\n");
+  map_Delete(map);
+  return response;
+}
+
+EMSCRIPTEN_KEEPALIVE uint8_t getCharAtPos(uint8_t *buffer, uint32_t index) {
+  return buffer[index];
+}
+
+#ifdef __cplusplus
+}
+#endif
