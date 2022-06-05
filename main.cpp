@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unordered_map>
 #include <ctime>
+#include <emscripten/emscripten.h>
+
 #define CONTAINER 2
 #define FREE_SPACE 0
 #define WALL 3
@@ -151,6 +153,8 @@ struct Map_t {
     int8_t pairs[2][1<<7];
     uint8_t distMatrix[1<<6][1<<6];
     struct Stack_t *prealocatedMemoryStack;
+    uint8_t *response;
+    uint32_t responseIndex;
 };
 
 uint8_t moveBox(Map self, uint8_t y, uint8_t x, uint8_t dy, uint8_t dx, uint8_t lastCell);
@@ -507,10 +511,10 @@ uint8_t isStuck(Map self) {
     return 0;
 }
 
-void mm_SearchDataAstar(Map self, int32_t (*heuristicFunction)(Map, int8_t, int8_t), size_t maxNumberOfSteps, uint8_t *path, int32_t *parents, uint8_t *actions);
+void mm_SearchDataAstar(Map self, int32_t (*heuristicFunction)(Map, int8_t, int8_t), size_t maxNumberOfSteps, uint8_t *path, int32_t *parents, uint8_t *actions, uint8_t *isDone);
 
 void mm_SearchDataAstar(Map self, int32_t (*heuristicFunction)(Map, int8_t, int8_t),
-                        size_t maxNumberOfSteps, uint8_t *path, int32_t *parents, uint8_t *actions, PQueue queue) {
+                        size_t maxNumberOfSteps, uint8_t *path, int32_t *parents, uint8_t *actions, PQueue queue, uint8_t *isDone) {
     self->hashMap->clear();
     uint8_t directions[] = {UP, DOWN, LEFT, RIGHT};
     int8_t dx[] = {0, 0, -1, 1};
@@ -541,32 +545,41 @@ void mm_SearchDataAstar(Map self, int32_t (*heuristicFunction)(Map, int8_t, int8
             }
             for(int32_t i = actionsSize - 1; i >= 0; i--) {
                 if(actions[i] == UP + 5) {
-                    printf("U");
+                    //printf("U");
+                    self->response[self->responseIndex++] = 'U';
                 }
                 if(actions[i] == DOWN + 5) {
-                    printf("D");
+                   // printf("D");
+                    self->response[self->responseIndex++] = 'D';
                 }
                 if(actions[i] == LEFT + 5) {
-                    printf("L");
+                   // printf("L");
+                    self->response[self->responseIndex++] = 'L';
                 }
                 if(actions[i] == RIGHT + 5) {
-                    printf("R");
+                   // printf("R");
+                    self->response[self->responseIndex++] = 'R';
                 }
                 if(actions[i] == UP) {
-                    printf("u");
+                   // printf("u");
+                    self->response[self->responseIndex++] = 'u';
                 }
                 if(actions[i] == DOWN) {
-                    printf("d");
+                   // printf("d");
+                    self->response[self->responseIndex++] = 'd';
                 }
                 if(actions[i] == LEFT) {
-                    printf("l");
+                   // printf("l");
+                    self->response[self->responseIndex++] = 'l';
                 }
                 if(actions[i] == RIGHT) {
-                    printf("r");
+                   // printf("r");
+                    self->response[self->responseIndex++] = 'r';
                 }
             }
             pq_Delete(queue);
-            exit(0);
+           // exit(0);
+            *isDone = 1;
             return ;
         }
         pq_DeleteHead(queue);
@@ -913,6 +926,7 @@ Map mm_Add(unsigned char **map, uint8_t sizeY, uint8_t sizeX) {
     self->sizeY = sizeY;
     self->sizeX = sizeX;
     self->map = map;
+    self->response = (uint8_t *)malloc(sizeof(uint8_t) * 10000);
     self->prealocatedMemoryStack = (struct Stack_t*)malloc(sizeof(struct Stack_t) * INITIAL_CAPACITY);
     memset(self->prealocatedMemoryStack, 0, sizeof(struct Stack_t) * INITIAL_CAPACITY);
     self->hashMap = new std::unordered_map<uint64_t, bool>();
@@ -935,17 +949,21 @@ Map mm_Add(unsigned char **map, uint8_t sizeY, uint8_t sizeX) {
     return self;
 }
 
-void createBackTracking_t(Map self, int8_t k, bool *hashes, uint8_t *path, int32_t *parents, uint8_t *actions, PQueue queue, struct Stack_t *first) {
+void createBackTracking_t(Map self, int8_t k, bool *hashes, uint8_t *path, int32_t *parents,
+                          uint8_t *actions, PQueue queue, struct Stack_t *first, uint8_t *isDone) {
+    if(*isDone) {
+        return ;
+    }
     if(k == self->objectsCount) {
         mm_SetState(self, first);
         self->memIndex = 1;
-        mm_SearchDataAstar(self, mm_GetHeuristicsPair, 8e5, path, parents, actions, queue);
+        mm_SearchDataAstar(self, mm_GetHeuristicsPair, 8e5, path, parents, actions, queue, isDone);
     }
     for(int8_t j = 0; j < self->objectsCount; j++) {
         if(!hashes[self->distMatrix[j][k]]) {
             hashes[self->distMatrix[j][k]] = 1;
             self->pairs[1][k] = self->distMatrix[j][k];
-            createBackTracking_t(self, k + 1, hashes, path, parents, actions, queue, first);
+            createBackTracking_t(self, k + 1, hashes, path, parents, actions, queue, first, isDone);
             hashes[self->distMatrix[j][k]] = 0;
         }
     }
@@ -961,7 +979,19 @@ void createBackTracking(Map self) {
     self->memIndex = 1;
     bool hashes[1<<7] = {0};
     struct Stack_t *firstStackElement = mm_GetStack(self, -1);
-    createBackTracking_t(self, 0, hashes, path, parents, actions, queue, firstStackElement);
+    uint8_t isDone = 0;
+    createBackTracking_t(self, 0, hashes, path, parents, actions, queue, firstStackElement, &isDone);
+}
+
+void playGame(uint8_t **bufferMap, uint8_t *response, uint8_t it_y, uint8_t it_x) {
+    Map map = mm_Add(bufferMap, it_y, it_x);
+    Start = clock();
+    createBackTracking(map);
+    memcpy(response, map->response, sizeof(uint8_t) * map->responseIndex);
+}
+
+EMSCRIPTEN_KEEPALIVE void *allocBuffer(size_t size) {
+  return malloc(size);
 }
 
 int main() {
@@ -984,7 +1014,10 @@ int main() {
         it_y++;
     }
     fclose(fd);
-    Map map = mm_Add(bufferMap, it_y, it_x);
-    Start = clock();
-    createBackTracking(map);
+    uint8_t response[10004] = {0};
+    playGame(bufferMap, response, it_y, it_x);
+    printf("%s", response);
+    // Map map = mm_Add(bufferMap, it_y, it_x);
+    // Start = clock();
+    // createBackTracking(map);
 }
