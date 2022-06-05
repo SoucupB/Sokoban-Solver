@@ -23,3 +23,7 @@ body {
 .padder {
   margin: 10px;
 }
+
+.warning-label {
+  color: blue;
+}
