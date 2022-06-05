@@ -82,7 +82,7 @@ function map_FromStr(stre) {
   for(var i = 0; i < height; i++) {
     let row = [];
     for(var j = 0; j < width; j++) {
-      row.push('|');
+      row.push(" ");
     }
     response.push(row)
   }
@@ -91,10 +91,10 @@ function map_FromStr(stre) {
   for(let i = 0; i < clsResp.length; i++) {
     if(clsResp[i].indexOf('#') != -1) {
       let row = [];
-      for(let j = 0, c = Math.max(clsResp[i].length, width); j < c; j++) {
+      for(let j = 0, c = Math.min(clsResp[i].length, width); j < c; j++) {
         row.push(clsResp[i][j]);
       }
-      for(let i = 0, c = Math.min(width, width); i < c; i++) {
+      for(let i = 0, c = Math.min(clsResp[i].length, width); i < c; i++) {
         response[currentRowIndex][i] = row[i];
       }
       currentRowIndex++;
@@ -291,6 +291,7 @@ function setCell(gameMap, y, x, val) {
 }
 
 function registerGameMap(gameMap) {
+  console.log(gameMap)
   let gameMapPointer = Module.ccall(
     'allocMatr',  // name of C function
     'I64',  // return type
@@ -356,12 +357,10 @@ function think() {
     console.log(gameMap[i])
     it_x = Math.max(it_x, gameMap[i].length);
   }
-  //show(mapPointer);
   let responseBuffer = getSokoResponse(mapPointer, gameMap.length, it_x);
   setStringTo(bufferToString(responseBuffer));
+  startGame();
 }
-
-// drddddrruRluRluRluRluRddddldlluRluRluRluRluRdddllDuruulDrdddrrR
 
 createGameMap(map_FromStr(getBoardContent()));
 

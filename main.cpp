@@ -1070,9 +1070,8 @@ EMSCRIPTEN_KEEPALIVE uint8_t *getSokoResponse(uint8_t **buffer, uint8_t it_y, ui
   Map map = mm_Add(buffer, it_y, it_x);
   Start = clock();
   createBackTracking(map);
-  uint8_t *response = (uint8_t *)malloc(sizeof(uint8_t) * map->responseIndex);
-  memcpy(response, map->response, sizeof(uint8_t) * map->responseIndex);
-//   mm_Show(map);
+  uint8_t *response = (uint8_t *)malloc(sizeof(uint8_t) * 10001);
+  memcpy(response, map->response, sizeof(uint8_t) * 10001);
   for(int32_t i = 0; i < map->responseIndex; i++) {
       printf("%c", map->response[i]);
   }
