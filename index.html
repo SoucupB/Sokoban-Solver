@@ -8,12 +8,12 @@
     <label>Input Map</label>
     <textarea id = 'gm-input' class = 'padder text-area-fun'>
 ########
-#@ $.$.#
-#  $.$.#
-#$ $.$.#
-#. $.$.#
-#$ $.$.#
-#.   $.#
+#. . ..#
+#####  #
+#.@$  $#
+#$ $ $ #
+#  $ $ #
+#.$  ..#
 ########
     </textarea>
     <label># is a piece of wall</label>
@@ -22,8 +22,11 @@
     <label>+ is the cell from which Stas starts his work if it is an aim cell</label>
     <label>$ is a container on a cell which is not an aim cell</label>
     <label>* is a container on an aim cell</label>
-    <label>"Let it think for itself" might take a while to finish (or never finish)</label>
-    <label>Sometimes "Let it think for itself" does not work, close the tab and reopen it.</label>
+    <label>"Let it think for itself" tries to solve the current puzzle but it might take a while to finish (or never finish at all)</label>
+    <label>*Sometimes "Let it think for itself" does not work, close the tab and reopen it.</label>
+    <label>*Max map size is width = 8, height = 8.</label>
+    <label>*The solutions are not optimal</label>
+    <label>*You can test your solutions with button "Start predefined game"</label>
     <button class = 'padder' onclick="onPress()">
       Change
     </button>
@@ -35,7 +38,7 @@
     </button>
     <label>Input string</label>
     <textarea id = 'str-inp' class = 'padder text-area-inp'>
-drddddrruRluRluRluRluRddddldlluRluRluRluRluRdddllDuruulDrdddrrR
+dRldldRRUluulDDrdrRuRUUUdlLLrrDullddrUdRuururuLLLLrrrddldlluRRdrUUruLLrdddrUUddDLullddrUluRdrUUU
     </textarea>
     <div id = 'game-map'>
 

@@ -248,7 +248,7 @@ function game_DrawStatesByString(initialState, responseStr) {
     let currentElement = responseStr[i++];
     game_Move(currentElement, initialState);
     createGameMap(initialState);
-  }, 500);
+  }, 300);
 }
 
 function interpolation_FrameAt(frame, currentFrame, nextFrame) {
